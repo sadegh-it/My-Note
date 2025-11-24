@@ -12,6 +12,8 @@ dagger = "2.57.2"
 room = "2.8.4"
 corotine = "1.10.2"
 
+accompanist = "0.36.0"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -38,7 +40,9 @@ navigation = { group = "androidx.navigation", name = "navigation-compose", versi
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room"}
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room"}
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room"}
-icon = { group = "androidx.compose.material",name="material-icons-extended",version="1.7.5"}
+icon = { group = "androidx.compose.material",name="material-icons-extended",version="1.7.8"}
+
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanist" }
 
 
 

@@ -1,9 +1,13 @@
+@file:Suppress("DEPRECATION")
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.dagger.plugin)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -39,6 +43,9 @@ android {
     buildFeatures {
         compose = true
     }
+    kotlinOptions {
+        freeCompilerArgs = listOf("-XXLanguage:+PropertyParamAnnotationDefaultTargetMode")
+    }
 }
 
 dependencies {
@@ -62,6 +69,9 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+
+    implementation(libs.accompanist.systemuicontroller)
+
 
     ksp(libs.room.compiler)
     ksp(libs.hilt.compiler)
