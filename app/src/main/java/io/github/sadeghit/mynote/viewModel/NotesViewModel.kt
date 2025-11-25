@@ -2,7 +2,7 @@ package io.github.sadeghit.mynote.viewModel
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.sadeghit.mynote.core.util.PersianDate
@@ -76,11 +76,44 @@ class NotesViewModel @Inject constructor(
     private val _showDeleteAllDialog = MutableStateFlow(false)
     val showDeleteAllDialog: StateFlow<Boolean> = _showDeleteAllDialog.asStateFlow()
 
+    private var recentlyUnpinnedNote: NoteEntity? = null
 
-    fun togglePin(noteId: Long, isPinned: Boolean) {
+    fun togglePin(noteId: Long, currentIsPinned: Boolean) {
         viewModelScope.launch {
-            repository.togglePin(noteId, isPinned.not()) // وضعیت را معکوس کن
-            _event.emit(UiEvent.ShowMessage(if (isPinned) "یادداشت از پین خارج شد" else "یادداشت پین شد"))
+            val noteEntity = repository.getNoteById(noteId) ?: return@launch
+            val newPinState = !currentIsPinned
+
+            // اگه داریم از پین درمیاریم → برای Undo ذخیره کن
+            if (currentIsPinned && !newPinState) {
+                recentlyUnpinnedNote = noteEntity
+            } else {
+                recentlyUnpinnedNote = null // اگه پین کردیم، Undo لازم نیست
+            }
+
+            val updatedNote = noteEntity.copy(isPinned = newPinState)
+            repository.updateNote(updatedNote)
+
+            val message = if (newPinState) "یادداشت پین شد" else "یادداشت از پین برداشته شد"
+
+            _event.emit(
+                UiEvent.ShowMessage(
+                    message = message,
+                    actionLabel = if (!newPinState) "برگرداندن" else null, // فقط وقتی از پین درآوردیم، دکمه برگرداندن باشه
+                    onActionPerformed = if (!newPinState) {
+                        { onUndoUnpin() }
+                    } else null
+                )
+            )
+        }
+    }
+
+    // تابع Undo برای برگرداندن پین
+    private fun onUndoUnpin() {
+        recentlyUnpinnedNote?.let { note ->
+            viewModelScope.launch {
+                repository.updateNote(note.copy(isPinned = true))
+                recentlyUnpinnedNote = null
+            }
         }
     }
 
@@ -105,15 +138,7 @@ class NotesViewModel @Inject constructor(
         _showDeleteDialog.value = false
     }
 
-    fun confirmDeleteNote() {
-        viewModelScope.launch {
-            _noteToDelete.value?.let { noteUiModel ->
-                repository.deleteNoteById(noteUiModel.id)
-                _event.emit(UiEvent.ShowMessage("یادداشت ${noteUiModel.title.ifBlank { "بدون عنوان" }} حذف شد"))
-            }
-            hideDeleteNoteDialog()
-        }
-    }
+
 
     fun showDeleteAllDialog() {
         _showDeleteAllDialog.value = true
@@ -263,5 +288,54 @@ class NotesViewModel @Inject constructor(
     }
 
 
+
+    private var recentlyDeletedNoteEntity: NoteEntity? = null
+
+
+    // این متد توسط دایالوگ در UI فراخوانی می‌شود
+    fun confirmDeleteNote() {
+         noteToDelete.value?.let { noteUiModel ->
+            viewModelScope.launch {
+                // ۱. یادداشت را از دیتابیس بخوان تا نسخه کامل Entity آن را داشته باشیم
+                val noteEntityToDelete = repository.getNoteById(noteUiModel.id)
+
+                if (noteEntityToDelete != null) {
+                    // ۲. یادداشت Entity را در متغیر موقت ذخیره کن
+                    recentlyDeletedNoteEntity = noteEntityToDelete
+
+                    // ۳. حالا یادداشت را از پایگاه داده حذف کن
+                    repository.deleteNote(noteEntityToDelete)
+
+                    // ۴. دایالوگ را ببند
+                    hideDeleteNoteDialog()
+
+                    // ۵. پیام را با دکمه "برگرداندن" برای UI ارسال کن
+                    _event.emit(
+                        UiEvent.ShowMessage(
+                            message = "یادداشت حذف شد",
+                            actionLabel = "برگرداندن",
+                            onActionPerformed = { onUndoDeleteClick() }
+                        )
+                    )
+                } else {
+                    // اگر به هر دلیلی یادداشت پیدا نشد، فقط یک پیام خطا بده
+                    hideDeleteNoteDialog()
+                    _event.emit(UiEvent.ShowMessage("خطا در حذف یادداشت"))
+                }
+            }
+        }
+    }
+
+    // این متد باید توسط MessageHandler فراخوانی شود وقتی کاربر روی "برگرداندن" کلیک می‌کند
+    fun onUndoDeleteClick() {
+        recentlyDeletedNoteEntity?.let { noteToRestore ->
+            viewModelScope.launch {
+                // یادداشت حذف شده را دوباره به پایگاه داده اضافه کن
+                repository.insertNote(noteToRestore)
+                // متغیر موقت را خالی کن تا دوباره استفاده نشود
+                recentlyDeletedNoteEntity = null
+            }
+        }
+    }
 }
 

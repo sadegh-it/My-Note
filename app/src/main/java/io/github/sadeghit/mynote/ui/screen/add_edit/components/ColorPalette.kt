@@ -28,14 +28,15 @@ import androidx.compose.ui.unit.dp
 
 
 private val noteColors = listOf(
-    Color(0xFFFFD8B1), // هلویی
+    Color(0xFF151515), // سفید
+    Color(0xFFFFFFFF), // سفید
+    Color(0xFFF28B82), // قرمز روشن
+    Color(0xFFFCBC04), // نارنجی
+    Color(0xFFFFF475), // زرد روشن
+    Color(0xFFCCFF90), // سبز روشن
     Color(0xFFD7AEFB), // بنفش روشن
     Color(0xFFA7FEE8), // آبی روشن
-    Color(0xFFCCFF90), // سبز روشن
-    Color(0xFFFFF475), // زرد روشن
-    Color(0xFFFCBC04), // نارنجی
-    Color(0xFFF28B82), // قرمز روشن
-    Color(0xFFFFFFFF), // سفید
+    Color(0xFFFFD8B1), // هلویی
 )
 
 @Composable
@@ -59,7 +60,7 @@ fun ColorPalette(
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             LazyRow(
-                reverseLayout = true,
+
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {

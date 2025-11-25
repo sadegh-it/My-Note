@@ -31,6 +31,9 @@ import io.github.sadeghit.mynote.ui.screen.add_edit.components.ColorPalette
 import io.github.sadeghit.mynote.ui.screen.add_edit.components.ContentTextField
 import io.github.sadeghit.mynote.ui.screen.add_edit.components.PinCheckbox
 import io.github.sadeghit.mynote.ui.screen.add_edit.components.TitleTextField
+import io.github.sadeghit.mynote.ui.screen.notes.components.AppAlertDialog
+import io.github.sadeghit.mynote.ui.screen.notes.components.MessageHandler
+import io.github.sadeghit.mynote.ui.screen.notes.components.MyCustomSnackbar
 import io.github.sadeghit.mynote.viewModel.NotesViewModel
 import kotlinx.coroutines.flow.collectLatest
 
@@ -44,10 +47,11 @@ fun AddEditNoteScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
-    // لود یادداشت در صورت ویرایش (Correction: changed loadNoteForEdit to loadNote)
+
     LaunchedEffect(noteId) {
         noteId?.let { viewModel.loadNoteForEdit(noteId) } // <-- اصلاح نام تابع
     }
+    MessageHandler(eventFlow = viewModel.event, snackbarHostState = snackbarHostState)
 
     // وضعیت فیلدها
     val title by viewModel.editTitle.collectAsStateWithLifecycle()
@@ -75,29 +79,27 @@ fun AddEditNoteScreen(
     }
 
     // دیالوگ دور انداختن تغییرات
-    if (showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.hideDiscardDialog() },
-            title = { Text("دور انداختن تغییرات؟") },
-            text = { Text("تغییرات ذخیره نشده حذف خواهند شد.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.hideDiscardDialog()
-                    viewModel.resetEditState() // برای خالی کردن حالت ویرایش
-                    onBack()
-                }) {
-                    Text("دور انداختن")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::hideDiscardDialog) {
-                    Text("لغو")
-                }
-            }
-        )
-    }
+    AppAlertDialog(
+        isVisible = showDiscardDialog,
+        title = "دور انداختن تغییرات؟",
+        message = "تغییرات ذخیره نشده حذف خواهند شد",
+        confirmText = "دور انداختن",
+        dismissText = "لغو",
+        onConfirm = {
+            viewModel.hideDiscardDialog()
+            viewModel.resetEditState()
+            onBack()
+        },
+        onDismiss = { viewModel.hideDiscardDialog() }
+    )
+
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                MyCustomSnackbar(data)
+            }
+        },
         topBar = {
             AddEditTopAppBar(
                 onBackClick = {
@@ -107,7 +109,7 @@ fun AddEditNoteScreen(
                 onSaveClick = { viewModel.saveNote(noteId) }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+
     ) { padding ->
         Column(
             modifier = Modifier

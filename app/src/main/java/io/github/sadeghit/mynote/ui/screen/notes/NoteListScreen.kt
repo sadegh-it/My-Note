@@ -1,6 +1,9 @@
 package io.github.sadeghit.mynote.ui.screen.notes
 
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,13 +22,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,10 +41,15 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.sadeghit.mynote.ui.screen.notes.components.AppAlertDialog
+import io.github.sadeghit.mynote.ui.screen.notes.components.MessageHandler
+import io.github.sadeghit.mynote.ui.screen.notes.components.MyCustomSnackbar
 import io.github.sadeghit.mynote.ui.screen.notes.components.NotesEmptyState
 import io.github.sadeghit.mynote.ui.screen.notes.components.NotesList
 import io.github.sadeghit.mynote.ui.screen.notes.components.NotesSearchBar
 import io.github.sadeghit.mynote.viewModel.NotesViewModel
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +58,7 @@ fun NoteListScreen(
     onAddClick: () -> Unit,
     viewModel: NotesViewModel = hiltViewModel()
 ) {
+    val focusManager = LocalFocusManager.current
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
@@ -54,7 +68,8 @@ fun NoteListScreen(
     val showDeleteAllDialog by viewModel.showDeleteAllDialog.collectAsStateWithLifecycle()
     val noteToDelete by viewModel.noteToDelete.collectAsStateWithLifecycle()
 
-
+    val snackbarHostState = remember { SnackbarHostState() }
+    MessageHandler(eventFlow = viewModel.event, snackbarHostState = snackbarHostState)
     // برای تغییر تم
     val toggleTheme = { viewModel.toggleTheme() }
 
@@ -63,80 +78,39 @@ fun NoteListScreen(
     // ===============================================
 
     // --- دایالوگ حذف تکی ---
-    if (showDeleteDialog && noteToDelete != null) {
-        AlertDialog(
-            onDismissRequest = viewModel::hideDeleteNoteDialog,
-            title = {
-                Text(
-                    "حذف یادداشت", style = typography.titleLarge.copy(
-                        textAlign = TextAlign.Right,
-                        textDirection = TextDirection.Rtl
-                    ), modifier = Modifier.fillMaxWidth()
-                )
-            },
-            text = {
-                Text(
-                    "آیا مطمئنید که می‌خواهید  یادداشت‌ را حذف کنید؟",
-                    style = typography.bodyMedium.copy(
-                        textAlign = TextAlign.Right,
-                        textDirection = TextDirection.Rtl
-                    ), modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmDeleteNote) {
-                    Text("حذف")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::hideDeleteNoteDialog) {
-                    Text("لغو")
-                }
-            }
+        AppAlertDialog(
+            isVisible = showDeleteDialog && noteToDelete != null,
+            title = "حذف یادداشت",
+            message = "آیا مطمئنید که می‌خواهید یادداشت را حذف کنید؟",
+            confirmText = "حذف",
+            dismissText = "لغو",
+            onConfirm = { viewModel.confirmDeleteNote() },
+            onDismiss = { viewModel.hideDeleteNoteDialog() }
         )
-    }
 
 
 
-    if (showDeleteAllDialog) {
-        AlertDialog(
-            onDismissRequest = viewModel::hideDeleteAllDialog,
-            title = {
-                Text(
-                    "حذف همه یادداشت‌ها", style = typography.titleLarge.copy(
-                        textAlign = TextAlign.Right,
-                        textDirection = TextDirection.Rtl
-                    ), modifier = Modifier.fillMaxWidth()
-                )
-            },
-            text = {
-                Text(
-                    "آیا مطمئنید که می‌خواهید همه یادداشت‌ها را حذف کنید؟\nاین عمل غیر قابل بازگشت است.",
-                    style = typography.bodyMedium.copy(
-                        textAlign = TextAlign.Right,
-                        textDirection = TextDirection.Rtl
-                    ), modifier = Modifier.fillMaxWidth()
-                )
 
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmDeleteAllNotes) {
-                    Text("حذف همه")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::hideDeleteAllDialog) {
-                    Text("لغو")
-                }
-            }
-        )
-    }
+    AppAlertDialog(
+        isVisible = showDeleteAllDialog,
+        title = "حذف همه یادداشت‌ها",
+        message = "آیا مطمئنید که می‌خواهید همه یادداشت‌ها را حذف کنید؟\nاین عمل غیر قابل بازگشت است.",
+        confirmText = "حذف همه",
+        dismissText = "لغو",
+        onConfirm = { viewModel.confirmDeleteAllNotes() },
+        onDismiss = { viewModel.hideDeleteAllDialog() }
+    )
 
 
     // ===============================================
     //                  بخش Scaffold
     // ===============================================
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                MyCustomSnackbar(data)
+            }
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -177,6 +151,11 @@ fun NoteListScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        focusManager.clearFocus()
+                    }
+                }
                 .padding(paddingValues)
         ) {
             // سرچ‌بار

@@ -1,5 +1,6 @@
 package io.github.sadeghit.mynote.ui.screen.notes.components
 
+import android.R.attr.textColor
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -36,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,22 +55,30 @@ fun NoteCard(
     onDeleteClick: (NoteUiModel) -> Unit,
     onTogglePin: (Long, Boolean) -> Unit
 ) {
+    LocalContentColor.current
 
 
+    val cardColor by animateColorAsState(
+        targetValue = if (note.color == 0) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            Color(note.color)
+        },
+        label = "CardColor"
+    )
 
-    val cardColor = if (note.color == 0) {
-        MaterialTheme.colorScheme.surface        // خودش توی دارک مود تیره می‌شه!
-    } else {
-        Color(note.color)
-    }
 
-    val textColor = if (note.color == 0) {
-        MaterialTheme.colorScheme.onSurface       // خودش توی دارک مود سفید می‌شه!
-    } else {
+    val baseTextColor = if (note.color != 0) {
         if (cardColor.luminance() > 0.5f) Color.Black else Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
     }
-
-
+    val finalTextColor = if (note.color == Color.White.toArgb() &&
+        MaterialTheme.colorScheme.background.luminance() < 0.3f) {
+        Color.Black
+    } else {
+        baseTextColor
+    }
     Surface(
 
         modifier = Modifier
@@ -79,9 +89,11 @@ fun NoteCard(
                 onClick = onClick,
                 onLongClick = { onDeleteClick(note) } // <--- فراخوانی حذف با نگه داشتن انگشت
             ),
-        color = cardColor
+        color = cardColor,
+        contentColor = finalTextColor
+
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
+
             Box(
                 modifier = Modifier.padding(16.dp)
             ) {
@@ -93,7 +105,6 @@ fun NoteCard(
                         text = highlightText(note.title.ifBlank { "بدون عنوان" }, searchQuery),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -156,4 +167,3 @@ fun NoteCard(
             }
         }
     }
-}
