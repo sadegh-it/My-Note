@@ -2,14 +2,14 @@ package io.github.sadeghit.mynote.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import io.github.sadeghit.mynote.core.util.PersianDate
 import io.github.sadeghit.mynote.data.local.datastore.dataStore
-import androidx.datastore.preferences.core.Preferences
+import java.util.GregorianCalendar
 import javax.inject.Singleton
 
 @Module
@@ -18,8 +18,8 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun providePersianDate(): PersianDate {
-        return PersianDate()
+    fun providePersianDate(): GregorianCalendar {
+        return GregorianCalendar()
     }
 
     @Provides

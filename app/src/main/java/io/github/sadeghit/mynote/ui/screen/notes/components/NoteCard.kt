@@ -1,90 +1,162 @@
-
 package io.github.sadeghit.mynote.ui.screen.notes.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.sadeghit.mynote.core.util.highlightText
-
 import io.github.sadeghit.mynote.ui.model.NoteUiModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NoteCard(
     note: NoteUiModel,
-    searchQuery: String = "",        // این اضافه شد
+    searchQuery: String = "",
     onClick: () -> Unit,
-
+    onDeleteClick: (NoteUiModel) -> Unit,
+    onTogglePin: (Long, Boolean) -> Unit
 ) {
     val cardColor by animateColorAsState(
-        targetValue = if (note.color == 0) MaterialTheme.colorScheme.surfaceVariant else Color(note.color),
-        label = "card_color"
+        targetValue = if (note.color == 0) {
+            // مهم: surface توی دارک مود تیره‌ست، surfaceVariant معمولاً روشن‌تره
+            MaterialTheme.colorScheme.surface
+        } else {
+            Color(note.color)
+        },
+        label = "NoteCardColorAnimation"
     )
 
-    Card(
-        onClick = onClick,
+
+    val content = LocalContentColor.current
+
+    val contentColor = remember(cardColor) {
+
+        if (cardColor.luminance() > 0.5f) {
+            Color.Black
+        } else {
+
+            content
+        }
+    }
+
+    Surface(
+
         modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .shadow(6.dp, RoundedCornerShape(18.dp))
-            .clip(RoundedCornerShape(18.dp))
-            .background(cardColor)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            .fillMaxWidth()
+            .shadow(4.dp, shape = RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onDeleteClick(note) } // <--- فراخوانی حذف با نگه داشتن انگشت
+            ),
+        color = cardColor
     ) {
-        Box {
-            Column(modifier = Modifier.padding(18.dp)) {
-                Text(
-                    text = highlightText(note.title.ifBlank { "بدون عنوان" }, searchQuery),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+        CompositionLocalProvider(LocalContentColor provides contentColor) {
+            Box(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // عنوان
+                    Text(
+                        text = highlightText(note.title.ifBlank { "بدون عنوان" }, searchQuery),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
 
-                Spacer(Modifier.height(8.dp))
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                Text(
-                    text = highlightText(note.content.ifBlank { "بدون محتوا" }, searchQuery),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalContentColor.current.copy(alpha = 0.75f),
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis
-                )
+                    Spacer(Modifier.height(8.dp))
 
-                Spacer(Modifier.height(12.dp))
+                    // محتوا
+                    Text(
+                        text = highlightText(note.content.ifBlank { "بدون محتوا" }, searchQuery),
+                        style = MaterialTheme.typography.bodyMedium,
 
-                Text(
-                    text = note.updatedAtPersian,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = LocalContentColor.current.copy(alpha = 0.6f)
-                )
-            }
 
-            if (note.isPinned) {
-                Icon(
-                    Icons.Default.PushPin,
-                    contentDescription = "پین شده",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp)
-                        .size(20.dp)
-                )
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // تاریخ
+                    Text(
+                        text = note.updatedAtPersian,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = LocalContentColor.current.copy(alpha = 0.6f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        Icons.Default.PushPin,
+                        contentDescription = "پین شده",
+                        tint = if (note.isPinned)
+                            MaterialTheme.colorScheme.primary
+                        else LocalContentColor.current.copy(alpha = 0.4f),
+                        modifier = Modifier
+
+                            .clickable { onTogglePin(note.id, note.isPinned) }
+                            .padding(4.dp)
+                            .size(24.dp)
+                    )
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "حذف",
+                        tint = LocalContentColor.current.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .clickable { onDeleteClick(note) }
+                            .padding(4.dp)
+                            .size(24.dp)
+                    )
+                }
+
+
             }
         }
     }

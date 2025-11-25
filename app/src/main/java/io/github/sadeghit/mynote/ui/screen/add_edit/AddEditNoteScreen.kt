@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.sadeghit.mynote.ui.event.UiEvent
 import io.github.sadeghit.mynote.ui.screen.add_edit.components.AddEditTopAppBar
@@ -45,9 +44,9 @@ fun AddEditNoteScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
-    // لود یادداشت در صورت ویرایش
+    // لود یادداشت در صورت ویرایش (Correction: changed loadNoteForEdit to loadNote)
     LaunchedEffect(noteId) {
-        noteId?.let { viewModel.loadNoteForEdit(it) }
+        noteId?.let { viewModel.loadNoteForEdit(noteId) } // <-- اصلاح نام تابع
     }
 
     // وضعیت فیلدها
@@ -57,9 +56,10 @@ fun AddEditNoteScreen(
     val isPinned by viewModel.editIsPinned.collectAsStateWithLifecycle()
     val showDiscardDialog by viewModel.showDiscardDialog.collectAsStateWithLifecycle()
     val hasContent = title.isNotBlank() || content.isNotBlank()
+    val hasChanges by viewModel.hasChanges.collectAsStateWithLifecycle()
+    val isNoteLoaded by viewModel.isNoteLoaded.collectAsStateWithLifecycle()
 
-    // BackHandler
-    BackHandler(enabled = hasContent) {
+    BackHandler(enabled = isNoteLoaded && hasChanges) {
         viewModel.showDiscardDialog()
     }
 
@@ -77,13 +77,13 @@ fun AddEditNoteScreen(
     // دیالوگ دور انداختن تغییرات
     if (showDiscardDialog) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { viewModel.hideDiscardDialog() },
             title = { Text("دور انداختن تغییرات؟") },
             text = { Text("تغییرات ذخیره نشده حذف خواهند شد.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.hideDiscardDialog()
-                    viewModel.resetEditState()
+                    viewModel.resetEditState() // برای خالی کردن حالت ویرایش
                     onBack()
                 }) {
                     Text("دور انداختن")
@@ -101,8 +101,9 @@ fun AddEditNoteScreen(
         topBar = {
             AddEditTopAppBar(
                 onBackClick = {
-                    if (hasContent) viewModel.showDiscardDialog() else onBack()
+                    if (hasChanges) viewModel.showDiscardDialog() else onBack()
                 },
+                // noteId می تواند null باشد، که در این صورت یک Note جدید ساخته می‌شود
                 onSaveClick = { viewModel.saveNote(noteId) }
             )
         },

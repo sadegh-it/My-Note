@@ -23,7 +23,7 @@ class AppSettings @Inject constructor(
         private val APP_LANGUAGE = intPreferencesKey("app_language") // 0 = fa, 1 = en
     }
     suspend fun saveDarkMode(enabled: Boolean) {
-        setDarkMode(enabled)  // یا مستقیم dataStore.edit بذار، ولی این تمیزتره
+        setDarkMode(enabled)
     }
 
     // --- Dark Mode ---

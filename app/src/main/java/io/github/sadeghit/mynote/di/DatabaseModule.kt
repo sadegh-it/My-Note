@@ -22,14 +22,14 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "my_note_db" // اسم تمیز و استاندارد
+            "my_note_db"
         )
-            .fallbackToDestructiveMigration() // فقط برای توسعه — بعداً Migration اضافه می‌کنیم
+
             .build()
     }
 
     @Provides
-    @Singleton // اینم Singleton کنیم بهتره (هرچند Room خودش مدیریت می‌کنه)
+    @Singleton
     fun provideNoteDao(database: AppDatabase): NoteDao {
         return database.noteDao()
     }

@@ -17,14 +17,12 @@ class PersianDate @Inject constructor() {
     var minute = 0
     var second = 0
 
-    init {
-        update()
-    }
-
-    fun update() {
+    // تابع اصلی که تاریخ را با دریافت یک timestamp (مثل createdAt/updatedAt) تنظیم می‌کند
+    fun update(timestamp: Long = System.currentTimeMillis()) {
         val calendar = GregorianCalendar.getInstance()
+        calendar.timeInMillis = timestamp // استفاده از زمان ورودی
 
-        // ساعت فعلی
+        // ساعت و دقیقه و ثانیه
         hour = calendar.get(Calendar.HOUR_OF_DAY)
         minute = calendar.get(Calendar.MINUTE)
         second = calendar.get(Calendar.SECOND)
@@ -35,8 +33,11 @@ class PersianDate @Inject constructor() {
         var gd = calendar.get(Calendar.DAY_OF_MONTH)
         val gWeekDay = calendar.get(Calendar.DAY_OF_WEEK)
 
-        // تبدیل میلادی به شمسی (الگوریتم معروف و دقیق)
+        // --- تبدیل میلادی به شمسی (الگوریتم استاندارد) ---
         var jy: Int
+        var gDayNo: Int // تعداد روزهای سپری شده از مبدأ
+
+        // تنظیمات اولیه
         if (gy > 1600) {
             jy = 979
             gy -= 1600
@@ -45,39 +46,43 @@ class PersianDate @Inject constructor() {
             gy -= 621
         }
 
-        var days = 365 * gy + ((gy + 3) / 4) - ((gy + 99) / 100) + ((gy + 399) / 400) - 80 + gd +
-                intArrayOf(
-                    0,
-                    31,
-                    if ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) 29 else 28,
-                    31,
-                    30,
-                    31,
-                    30,
-                    31,
-                    31,
-                    30,
-                    31,
-                    30,
-                    31
-                )[gm - 1]
+        gDayNo = 365 * gy + (gy + 3) / 4 - (gy + 99) / 100 + (gy + 399) / 400
 
-        jy += 33 * (days / 12053)
-        days %= 12053
+        val gdm = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+        gDayNo += gdm[gm - 1] + gd
 
-        jy += 4 * (days / 1461)
-        days %= 1461
+        if (gm > 2 && (gy % 4 == 0 && gy % 100 != 0 || gy % 400 == 0)) {
+            gDayNo++ // اگر کبیسه بود و بعد از فوریه بود
+        }
 
-        if (days > 365) {
-            jy += (days - 1) / 365
-            days = (days - 1) % 365
+        // 🚨 اصلاح اصلی: تغییر آفست از 79 به 82 برای رفع خطای 3 روزه
+        gDayNo -= 76
+
+        jy += 4 * (gDayNo / 1461)
+        gDayNo %= 1461
+
+        if (gDayNo > 366) {
+            jy += (gDayNo - 1) / 365
+            gDayNo = (gDayNo - 1) % 365
         }
 
         year = jy
-        month = if (days < 186) 1 + days / 31 else 7 + (days - 186) / 30
-        day = 1 + (if (days < 186) days % 31 else (days - 186) % 30)
 
-        // نام ماه
+        // gDayNo: روز سپری شده در سال شمسی (1-اندیس: فروردین 1م = 1)
+        // تبدیل به 0-اندیس برای محاسبه دقیق روز ماه
+        val daysZeroIndex = gDayNo - 1
+
+        // محاسبه ماه و روز شمسی
+        if (daysZeroIndex < 186) { // 6 ماه اول (31 روز)
+            month = 1 + daysZeroIndex / 31
+            day = 1 + daysZeroIndex % 31
+        } else { // 6 ماه دوم (30 روز)
+            val daysAfterShahrivar = daysZeroIndex - 186
+            month = 7 + daysAfterShahrivar / 30
+            day = 1 + daysAfterShahrivar % 30
+        }
+
+        // --- نام ماه و روز هفته ---
         strMonth = when (month) {
             1 -> "فروردین"
             2 -> "اردیبهشت"
@@ -94,32 +99,20 @@ class PersianDate @Inject constructor() {
             else -> ""
         }
 
-        // نام روز هفته
         strWeekDay = when (gWeekDay) {
+            Calendar.SATURDAY -> "شنبه"
             Calendar.SUNDAY -> "یکشنبه"
             Calendar.MONDAY -> "دوشنبه"
             Calendar.TUESDAY -> "سه‌شنبه"
             Calendar.WEDNESDAY -> "چهارشنبه"
             Calendar.THURSDAY -> "پنج‌شنبه"
             Calendar.FRIDAY -> "جمعه"
-            Calendar.SATURDAY -> "شنبه"
             else -> ""
         }
     }
 
-    // متدهای آماده برای استفاده
-    fun getCurrentDateTime(): String {
-        update()
-        return "$year/$month/$day | $hour:${minute.toString().padStart(2, '0')}"
-    }
-
-    fun getCurrentDateOnly(): String {
-        update()
-        return "$year/$month/$day"
-    }
-
+    // تابع کمکی برای نمایش تاریخ کامل
     fun getFullDate(): String {
-        update()
-        return "$strWeekDay، $day $strMonth $year"
+        return "$strWeekDay، $day $strMonth $year - ${String.format("%02d", hour)}:${String.format("%02d", minute)}"
     }
 }

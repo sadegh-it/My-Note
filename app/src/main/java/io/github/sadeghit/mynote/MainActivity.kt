@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
             val isDarkMode by viewModel.isDarkMode.collectAsState()
 
             MyNoteTheme(darkTheme = isDarkMode) {
+
                 SetupNavigation()
             }
         }

@@ -14,14 +14,11 @@ import io.github.sadeghit.mynote.ui.model.NoteUiModel
 import io.github.sadeghit.mynote.ui.model.toUiModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,47 +29,135 @@ class NotesViewModel @Inject constructor(
     private val repository: NotesRepository,
     private val persianDate: PersianDate,
     private val appSettings: AppSettings
-) : ViewModel() {
+) : ViewModel()
+{
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    val isDarkMode: StateFlow<Boolean> = appSettings.isDarkMode
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+
+
+    private val _isNoteLoaded = MutableStateFlow(false)
+    val isNoteLoaded: StateFlow<Boolean> = _isNoteLoaded.asStateFlow()
+
+    fun loadNoteForEdit(noteId: Long?) {
+        if (noteId == null || noteId == 0L) {
+            resetEditState()
+            _originalNote.value = null
+            _isNoteLoaded.value = true // نوت جدید، آماده
+            return
+        }
+
+        viewModelScope.launch {
+            repository.getNoteById(noteId)?.let { note ->
+                _originalNote.value = note
+                _editTitle.value = note.title
+                _editContent.value = note.content
+                _editColor.value = Color(note.color)
+                _editIsPinned.value = note.isPinned
+                _isNoteLoaded.value = true // لود کامل شد
+            }
+        }
+    }
+
+    // برای نگهداری یادداشتی که باید حذف شود (در حذف تکی)
+    private val _noteToDelete = MutableStateFlow<NoteUiModel?>(null)
+    val noteToDelete: StateFlow<NoteUiModel?> = _noteToDelete.asStateFlow()
+
+    // نمایش/عدم نمایش دایالوگ حذف تکی
+    private val _showDeleteDialog = MutableStateFlow(false)
+    val showDeleteDialog: StateFlow<Boolean> = _showDeleteDialog.asStateFlow()
+
+    // نمایش/عدم نمایش دایالوگ حذف همه
+    private val _showDeleteAllDialog = MutableStateFlow(false)
+    val showDeleteAllDialog: StateFlow<Boolean> = _showDeleteAllDialog.asStateFlow()
+
+
+    fun togglePin(noteId: Long, isPinned: Boolean) {
+        viewModelScope.launch {
+            repository.togglePin(noteId, isPinned.not()) // وضعیت را معکوس کن
+            _event.emit(UiEvent.ShowMessage(if (isPinned) "یادداشت از پین خارج شد" else "یادداشت پین شد"))
+        }
+    }
+
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
     }
 
-    fun deleteAllNotes() {
+    fun toggleTheme() {
+        viewModelScope.launch {
+            appSettings.setDarkMode(!isDarkMode.value)
+        }
+    }
+
+
+    fun showDeleteNoteDialog(note: NoteUiModel) {
+        _noteToDelete.value = note
+        _showDeleteDialog.value = true
+    }
+
+    fun hideDeleteNoteDialog() {
+        _noteToDelete.value = null
+        _showDeleteDialog.value = false
+    }
+
+    fun confirmDeleteNote() {
+        viewModelScope.launch {
+            _noteToDelete.value?.let { noteUiModel ->
+                repository.deleteNoteById(noteUiModel.id)
+                _event.emit(UiEvent.ShowMessage("یادداشت ${noteUiModel.title.ifBlank { "بدون عنوان" }} حذف شد"))
+            }
+            hideDeleteNoteDialog()
+        }
+    }
+
+    fun showDeleteAllDialog() {
+        _showDeleteAllDialog.value = true
+    }
+
+    fun hideDeleteAllDialog() {
+        _showDeleteAllDialog.value = false
+    }
+
+    fun confirmDeleteAllNotes() {
         viewModelScope.launch {
             repository.deleteAllNotes()
             _event.emit(UiEvent.ShowMessage("همه یادداشت‌ها حذف شدند"))
-        }
-    }
-
-    fun toggleTheme() {
-        viewModelScope.launch {
-            val current = appSettings.isDarkMode.first()  // مقدار واقعی از DataStore
-            appSettings.setDarkMode(!current)             // ذخیره می‌شه و همه جا اعمال می‌شه
+            hideDeleteAllDialog()
         }
     }
 
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val notes: StateFlow<List<NoteUiModel>> = combine(
+        repository.getAllNotes(),
+        _searchQuery
+    ) { notes, query ->
+        notes.map { it.toUiModel(persianDate) }
+            .filter {
+                if (query.isBlank()) true else {
+                    it.title.contains(query, ignoreCase = true) ||
+                            it.content.contains(query, ignoreCase = true)
+                }
+            }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
 
 
-    // تنظیمات
-    val isDarkMode: StateFlow<Boolean> = appSettings.isDarkMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val isGridMode: StateFlow<Boolean> = appSettings.isGridMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
-
-    // لیست یادداشت‌ها
-    private val _notes = MutableStateFlow<List<NoteUiModel>>(emptyList())
-    val notes: StateFlow<List<NoteUiModel>> = _notes.asStateFlow()
-
-    // رویدادهای UI (Toast, Navigation و ...)
     private val _event = MutableSharedFlow<UiEvent>()
-    val event: SharedFlow<UiEvent> = _event.asSharedFlow()
+    val event = _event.asSharedFlow()
 
-    // حالت ویرایش یادداشت
+
+    // --- Add/Edit State ---
     private val _editTitle = MutableStateFlow("")
     val editTitle: StateFlow<String> = _editTitle.asStateFlow()
 
@@ -88,53 +173,37 @@ class NotesViewModel @Inject constructor(
     private val _showDiscardDialog = MutableStateFlow(false)
     val showDiscardDialog: StateFlow<Boolean> = _showDiscardDialog.asStateFlow()
 
-    init {
-        loadNotes()
-    }
+    private val _originalNote = MutableStateFlow<NoteEntity?>(null)
 
-    private fun loadNotes() {
-        viewModelScope.launch {
-            repository.getAllNotes()
-                .catch { _event.emit(UiEvent.ShowMessage("خطا در بارگذاری یادداشت‌ها")) }
-                .collectLatest { entities ->
-                    _notes.value = entities.map { it.toUiModel(persianDate) }
-                }
+
+    val hasChanges: StateFlow<Boolean> = combine(
+        _originalNote,
+        _editTitle,
+        _editContent,
+        _editColor,
+        _editIsPinned
+    ) { originalNote, title, content, color, isPinned ->
+        // اگر نوت جدید باشد (originalNote == null) و محتوایی وجود داشته باشد، یعنی تغییرات وجود دارد
+        if (originalNote == null) {
+            title.isNotBlank() || content.isNotBlank()
+        } else {
+            // اگر نوت موجود باشد، چک می‌کنیم که آیا چیزی تغییر کرده است یا خیر
+            title.trim() != originalNote.title.trim() ||
+                    content.trim() != originalNote.content.trim() ||
+                    color.toArgb() != originalNote.color ||
+                    isPinned != originalNote.isPinned
         }
-    }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
 
-    // === عملیات روی یادداشت‌ها ===
-    fun togglePin(noteId: Long) {
-        viewModelScope.launch {
-            val note = repository.getNoteById(noteId) ?: return@launch
-            repository.togglePin(noteId, !note.isPinned)
-        }
-    }
 
-    fun changeNoteColor(noteId: Long, color: Int) {
-        viewModelScope.launch {
-            repository.changeColor(noteId, color)
-        }
-    }
 
-    fun deleteNote(note: NoteEntity) {
-        viewModelScope.launch {
-            repository.deleteNote(note)
-            _event.emit(UiEvent.ShowMessage("یادداشت حذف شد"))
-        }
-    }
 
-    // === حالت ویرایش ===
-    fun loadNoteForEdit(noteId: Long) {
-        viewModelScope.launch {
-            repository.getNoteById(noteId)?.let { note ->
-                _editTitle.value = note.title
-                _editContent.value = note.content
-                _editColor.value = Color(note.color)
-                _editIsPinned.value = note.isPinned
-            }
-        }
-    }
-
+    // سایر توابع Edit Screen... (onTitleChanged, onContentChanged, onColorChanged, onPinChanged, saveNote, resetEditState)
+    // ... (این توابع را بدون تغییر نگه دارید)
     fun onTitleChanged(title: String) {
         _editTitle.value = title
     }
@@ -168,14 +237,16 @@ class NotesViewModel @Inject constructor(
                 content = _editContent.value.trim(),
                 color = _editColor.value.toArgb(),
                 isPinned = _editIsPinned.value,
-                createdAt = if (noteId == null) currentTime else repository.getNoteById(noteId!!)?.createdAt
+                // isArchived را به false تنظیم می‌کنیم
+                isArchived = false,
+                createdAt = if (noteId == null) currentTime else repository.getNoteById(noteId)?.createdAt
                     ?: currentTime,
                 updatedAt = currentTime
             )
 
-            if (noteId == null) {
+            if (noteId == null || noteId == 0L) { // اگر نوت جدید است
                 repository.insertNote(note)
-            } else {
+            } else { // اگر نوت موجود است
                 repository.updateNote(note)
             }
 
@@ -190,6 +261,8 @@ class NotesViewModel @Inject constructor(
         _editContent.value = ""
         _editColor.value = Color(0xFFFFFFFF)
         _editIsPinned.value = false
-        _showDiscardDialog.value = false
     }
+
+
 }
+

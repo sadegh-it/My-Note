@@ -9,7 +9,7 @@ class NotesRepository @Inject constructor(
     private val noteDao: NoteDao
 ) {
 
-    // فقط دیتابیس رو برمی‌گردونه — بدون هیچ منطق اضافه
+
     fun getAllNotes(): Flow<List<NoteEntity>> = noteDao.getAllNotes()
 
     suspend fun getNoteById(id: Long): NoteEntity? = noteDao.getNoteById(id)
@@ -36,8 +36,11 @@ class NotesRepository @Inject constructor(
 
     // پین کردن / آن‌پین کردن
     suspend fun togglePin(noteId: Long, isPinned: Boolean) {
-        val note = noteDao.getNoteById(noteId) ?: return
-        noteDao.update(note.copy(isPinned = isPinned, updatedAt = System.currentTimeMillis()))
+        noteDao.updateIsPinned(
+            id = noteId,
+            isPinned = isPinned,
+            currentTime = System.currentTimeMillis()
+        )
     }
 
     // تغییر رنگ

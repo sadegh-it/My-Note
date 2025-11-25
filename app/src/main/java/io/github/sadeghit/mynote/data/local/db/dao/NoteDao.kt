@@ -22,14 +22,18 @@ interface NoteDao {
     @Delete
     suspend fun delete(note: NoteEntity)
 
-    @Query("DELETE FROM notes WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    @Query("SELECT * FROM notes WHERE id = :id")
+    suspend fun getNoteById(id: Long): NoteEntity?
 
     @Query("SELECT * FROM notes ORDER BY isPinned DESC, updatedAt DESC")
     fun getAllNotes(): Flow<List<NoteEntity>>
 
-    @Query("SELECT * FROM notes WHERE id = :id")
-    suspend fun getNoteById(id: Long): NoteEntity?
+    @Query("UPDATE notes SET isPinned = :isPinned, updatedAt = :currentTime WHERE id = :id")
+    suspend fun updateIsPinned(id: Long, isPinned: Boolean, currentTime: Long)
+
+    @Query("DELETE FROM notes WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
 
     @Query("DELETE FROM notes")
     suspend fun deleteAll() //
