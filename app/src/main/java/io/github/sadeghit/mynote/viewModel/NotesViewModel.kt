@@ -164,7 +164,7 @@ class NotesViewModel @Inject constructor(
     private val _editContent = MutableStateFlow("")
     val editContent: StateFlow<String> = _editContent.asStateFlow()
 
-    private val _editColor = MutableStateFlow(Color(0xFFFFFFFF))
+    private val _editColor = MutableStateFlow(Color(0x00000000))
     val editColor: StateFlow<Color> = _editColor.asStateFlow()
 
     private val _editIsPinned = MutableStateFlow(false)
@@ -202,8 +202,7 @@ class NotesViewModel @Inject constructor(
 
 
 
-    // سایر توابع Edit Screen... (onTitleChanged, onContentChanged, onColorChanged, onPinChanged, saveNote, resetEditState)
-    // ... (این توابع را بدون تغییر نگه دارید)
+
     fun onTitleChanged(title: String) {
         _editTitle.value = title
     }

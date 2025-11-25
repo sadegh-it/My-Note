@@ -55,7 +55,7 @@ fun AddEditNoteScreen(
     val selectedColor by viewModel.editColor.collectAsStateWithLifecycle()
     val isPinned by viewModel.editIsPinned.collectAsStateWithLifecycle()
     val showDiscardDialog by viewModel.showDiscardDialog.collectAsStateWithLifecycle()
-    val hasContent = title.isNotBlank() || content.isNotBlank()
+
     val hasChanges by viewModel.hasChanges.collectAsStateWithLifecycle()
     val isNoteLoaded by viewModel.isNoteLoaded.collectAsStateWithLifecycle()
 
