@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults.contentColor
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,6 +39,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.sadeghit.mynote.core.util.highlightText
 import io.github.sadeghit.mynote.ui.model.NoteUiModel
 
@@ -50,28 +53,21 @@ fun NoteCard(
     onDeleteClick: (NoteUiModel) -> Unit,
     onTogglePin: (Long, Boolean) -> Unit
 ) {
-    val cardColor by animateColorAsState(
-        targetValue = if (note.color == 0) {
-            // مهم: surface توی دارک مود تیره‌ست، surfaceVariant معمولاً روشن‌تره
-            MaterialTheme.colorScheme.surface
-        } else {
-            Color(note.color)
-        },
-        label = "NoteCardColorAnimation"
-    )
 
 
-    val content = LocalContentColor.current
 
-    val contentColor = remember(cardColor) {
-
-        if (cardColor.luminance() > 0.5f) {
-            Color.Black
-        } else {
-
-            content
-        }
+    val cardColor = if (note.color == 0) {
+        MaterialTheme.colorScheme.surface        // خودش توی دارک مود تیره می‌شه!
+    } else {
+        Color(note.color)
     }
+
+    val textColor = if (note.color == 0) {
+        MaterialTheme.colorScheme.onSurface       // خودش توی دارک مود سفید می‌شه!
+    } else {
+        if (cardColor.luminance() > 0.5f) Color.Black else Color.White
+    }
+
 
     Surface(
 
