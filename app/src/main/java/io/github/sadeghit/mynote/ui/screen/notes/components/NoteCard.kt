@@ -1,11 +1,9 @@
 package io.github.sadeghit.mynote.ui.screen.notes.components
 
-import android.R.attr.textColor
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,15 +20,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults.contentColor
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +36,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.sadeghit.mynote.core.util.highlightText
 import io.github.sadeghit.mynote.ui.model.NoteUiModel
 
@@ -74,7 +68,8 @@ fun NoteCard(
         MaterialTheme.colorScheme.onSurface
     }
     val finalTextColor = if (note.color == Color.White.toArgb() &&
-        MaterialTheme.colorScheme.background.luminance() < 0.3f) {
+        MaterialTheme.colorScheme.background.luminance() < 0.3f
+    ) {
         Color.Black
     } else {
         baseTextColor
@@ -94,76 +89,76 @@ fun NoteCard(
 
     ) {
 
-            Box(
-                modifier = Modifier.padding(16.dp)
+        Box(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // عنوان
-                    Text(
-                        text = highlightText(note.title.ifBlank { "بدون عنوان" }, searchQuery),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                // عنوان
+                Text(
+                    text = highlightText(note.title.ifBlank { "بدون عنوان" }, searchQuery),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                    Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
 
-                    // محتوا
-                    Text(
-                        text = highlightText(note.content.ifBlank { "بدون محتوا" }, searchQuery),
-                        style = MaterialTheme.typography.bodyMedium,
+                // محتوا
+                Text(
+                    text = highlightText(note.content.ifBlank { "بدون محتوا" }, searchQuery),
+                    style = MaterialTheme.typography.bodyMedium,
 
 
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                    Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-                    // تاریخ
-                    Text(
-                        text = note.updatedAtPersian,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = LocalContentColor.current.copy(alpha = 0.6f)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        Icons.Default.PushPin,
-                        contentDescription = "پین شده",
-                        tint = if (note.isPinned)
-                            MaterialTheme.colorScheme.primary
-                        else LocalContentColor.current.copy(alpha = 0.4f),
-                        modifier = Modifier
-
-                            .clickable { onTogglePin(note.id, note.isPinned) }
-                            .padding(4.dp)
-                            .size(24.dp)
-                    )
-
-                    Spacer(Modifier.width(12.dp))
-
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "حذف",
-                        tint = LocalContentColor.current.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .clickable { onDeleteClick(note) }
-                            .padding(4.dp)
-                            .size(24.dp)
-                    )
-                }
-
-
+                // تاریخ
+                Text(
+                    text = note.updatedAtPersian,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LocalContentColor.current.copy(alpha = 0.6f)
+                )
             }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Icon(
+                    Icons.Default.PushPin,
+                    contentDescription = "پین شده",
+                    tint = if (note.isPinned)
+                        MaterialTheme.colorScheme.primary
+                    else LocalContentColor.current.copy(alpha = 0.4f),
+                    modifier = Modifier
+
+                        .clickable { onTogglePin(note.id, note.isPinned) }
+                        .padding(4.dp)
+                        .size(24.dp)
+                )
+
+                Spacer(Modifier.width(12.dp))
+
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "حذف",
+                    tint = LocalContentColor.current.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .clickable { onDeleteClick(note) }
+                        .padding(4.dp)
+                        .size(24.dp)
+                )
+            }
+
+
         }
     }
+}

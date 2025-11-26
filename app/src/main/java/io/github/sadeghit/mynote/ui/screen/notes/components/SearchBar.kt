@@ -25,7 +25,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun NotesSearchBar(
     query: String,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         OutlinedTextField(
@@ -35,7 +36,7 @@ fun NotesSearchBar(
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             textStyle = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Right // <--- ADDED: برای تراز کردن متن ورودی
+                textAlign = TextAlign.Right //
             ),
             singleLine = true,
             shape = MaterialTheme.shapes.extraLarge,
@@ -49,7 +50,7 @@ fun NotesSearchBar(
                 disabledBorderColor = Color.Transparent,
                 errorBorderColor = Color.Transparent
             ),
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 12.dp)
         )

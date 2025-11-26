@@ -32,7 +32,7 @@ fun MyCustomSnackbar(data: SnackbarData) {
     ) {
         Surface(
             modifier = Modifier
-                .width(450.dp)
+                .width(350.dp)
                 .wrapContentHeight(),
             shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surface,
