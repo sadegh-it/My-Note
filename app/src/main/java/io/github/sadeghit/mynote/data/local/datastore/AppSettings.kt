@@ -18,10 +18,12 @@ class AppSettings @Inject constructor(
 
     companion object {
         private val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
-        private val IS_PERSIAN_DATE = booleanPreferencesKey("is_persian_date")  // بعداً برای سوییچ شمسی/میلادی
+        private val IS_PERSIAN_DATE =
+            booleanPreferencesKey("is_persian_date")  // بعداً برای سوییچ شمسی/میلادی
         private val GRID_MODE = booleanPreferencesKey("is_grid_mode")
         private val APP_LANGUAGE = intPreferencesKey("app_language") // 0 = fa, 1 = en
     }
+
     suspend fun saveDarkMode(enabled: Boolean) {
         setDarkMode(enabled)
     }

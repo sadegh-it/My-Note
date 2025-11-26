@@ -2,7 +2,7 @@ package io.github.sadeghit.mynote.viewModel
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
- import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.sadeghit.mynote.core.util.PersianDate
@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,8 +30,7 @@ class NotesViewModel @Inject constructor(
     private val repository: NotesRepository,
     private val persianDate: PersianDate,
     private val appSettings: AppSettings
-) : ViewModel()
-{
+) : ViewModel() {
 
     val isDarkMode: StateFlow<Boolean> = appSettings.isDarkMode
         .stateIn(
@@ -38,7 +38,6 @@ class NotesViewModel @Inject constructor(
             SharingStarted.WhileSubscribed(5000),
             initialValue = false
         )
-
 
 
     private val _isNoteLoaded = MutableStateFlow(false)
@@ -84,10 +83,10 @@ class NotesViewModel @Inject constructor(
             val newPinState = !currentIsPinned
 
             // اگه داریم از پین درمیاریم → برای Undo ذخیره کن
-            if (currentIsPinned && !newPinState) {
-                recentlyUnpinnedNote = noteEntity
+            recentlyUnpinnedNote = if (currentIsPinned) {
+                noteEntity
             } else {
-                recentlyUnpinnedNote = null // اگه پین کردیم، Undo لازم نیست
+                null // اگه پین کردیم، Undo لازم نیست
             }
 
             val updatedNote = noteEntity.copy(isPinned = newPinState)
@@ -139,21 +138,12 @@ class NotesViewModel @Inject constructor(
     }
 
 
-
     fun showDeleteAllDialog() {
         _showDeleteAllDialog.value = true
     }
 
     fun hideDeleteAllDialog() {
         _showDeleteAllDialog.value = false
-    }
-
-    fun confirmDeleteAllNotes() {
-        viewModelScope.launch {
-            repository.deleteAllNotes()
-            _event.emit(UiEvent.ShowMessage("همه یادداشت‌ها حذف شدند"))
-            hideDeleteAllDialog()
-        }
     }
 
 
@@ -225,9 +215,6 @@ class NotesViewModel @Inject constructor(
     )
 
 
-
-
-
     fun onTitleChanged(title: String) {
         _editTitle.value = title
     }
@@ -288,13 +275,12 @@ class NotesViewModel @Inject constructor(
     }
 
 
-
     private var recentlyDeletedNoteEntity: NoteEntity? = null
 
 
     // این متد توسط دایالوگ در UI فراخوانی می‌شود
     fun confirmDeleteNote() {
-         noteToDelete.value?.let { noteUiModel ->
+        noteToDelete.value?.let { noteUiModel ->
             viewModelScope.launch {
                 // ۱. یادداشت را از دیتابیس بخوان تا نسخه کامل Entity آن را داشته باشیم
                 val noteEntityToDelete = repository.getNoteById(noteUiModel.id)
@@ -337,5 +323,56 @@ class NotesViewModel @Inject constructor(
             }
         }
     }
+
+    private var recentlyDeletedAllNotes: List<NoteEntity> = emptyList()
+    fun confirmDeleteAllNotes() {
+        viewModelScope.launch {
+            // گرفتن لیست فعلی یادداشت‌ها از Flow
+            val allNotes = repository.getAllNotes().first()
+
+            // اگر خالی بود، فقط دیالوگ رو ببند
+            if (allNotes.isEmpty()) {
+                hideDeleteAllDialog()
+                return@launch
+            }
+
+            // ذخیره موقت برای Undo
+            recentlyDeletedAllNotes = allNotes
+
+            // حذف همه از دیتابیس
+            repository.deleteAllNotes()
+
+            // بستن دیالوگ
+            hideDeleteAllDialog()
+
+            // نمایش اسنک‌بار با دکمه‌دار
+            _event.emit(
+                UiEvent.ShowMessage(
+                    message = "همه یادداشت‌ها حذف شدند",
+                    actionLabel = "برگرداندن",
+                    onActionPerformed = { onUndoDeleteAll() }
+                )
+            )
+        }
+    }
+
+    fun onUndoDeleteAll() {
+        if (recentlyDeletedAllNotes.isEmpty()) return
+
+        viewModelScope.launch {
+            // همه یادداشت‌های حذف شده رو دوباره اضافه کن
+            recentlyDeletedAllNotes.forEach { note ->
+                repository.insertNote(note)
+            }
+
+            // پاک کردن حافظه موقت
+            recentlyDeletedAllNotes = emptyList()
+
+            // پیام موفقیت (اختیاری)
+            _event.emit(UiEvent.ShowMessage("یادداشت‌ها برگشتند"))
+        }
+    }
+
+
 }
 

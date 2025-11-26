@@ -4,7 +4,7 @@ import io.github.sadeghit.mynote.core.util.PersianDate
 import io.github.sadeghit.mynote.data.local.db.entity.NoteEntity
 
 data class NoteUiModel(
-// ... (بدون تغییر)
+
     val id: Long,
     val title: String,
     val content: String,

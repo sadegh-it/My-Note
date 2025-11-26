@@ -19,14 +19,15 @@ fun ContentTextField(
     modifier: Modifier = Modifier
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text("یادداشت") },
-        textStyle = MaterialTheme.typography.bodyLarge,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 200.dp),
-        maxLines = 20
-    )
-}}
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text("یادداشت") },
+            textStyle = MaterialTheme.typography.bodyLarge,
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp),
+            maxLines = 20
+        )
+    }
+}

@@ -15,18 +15,31 @@ fun MessageHandler(
     eventFlow: Flow<UiEvent>,
     snackbarHostState: SnackbarHostState
 ) {
-    LaunchedEffect(eventFlow) {
+    LaunchedEffect(eventFlow, snackbarHostState) {
         eventFlow.collectLatest { event ->
-            if (event is UiEvent.ShowMessage) {
-                snackbarHostState.showSnackbar(
-                    message = event.message,
-                    actionLabel = event.actionLabel,
-                    duration = if (event.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short
-                ).let { result ->
+            when (event) {
+                is UiEvent.ShowMessage -> {
+
+                    val duration = if (event.actionLabel != null) {
+                        SnackbarDuration.Long
+                    } else {
+                        SnackbarDuration.Short
+                    }
+
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        actionLabel = event.actionLabel,
+                        duration = duration
+                    )
+
+
                     if (result == SnackbarResult.ActionPerformed) {
                         event.onActionPerformed?.invoke()
                     }
                 }
+
+
+                else -> Unit
             }
         }
     }

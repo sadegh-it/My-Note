@@ -1,9 +1,7 @@
 package io.github.sadeghit.mynote.ui.screen.notes
 
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,18 +12,17 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -36,9 +33,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.sadeghit.mynote.ui.screen.notes.components.AppAlertDialog
@@ -48,7 +44,6 @@ import io.github.sadeghit.mynote.ui.screen.notes.components.NotesEmptyState
 import io.github.sadeghit.mynote.ui.screen.notes.components.NotesList
 import io.github.sadeghit.mynote.ui.screen.notes.components.NotesSearchBar
 import io.github.sadeghit.mynote.viewModel.NotesViewModel
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,22 +68,21 @@ fun NoteListScreen(
     // برای تغییر تم
     val toggleTheme = { viewModel.toggleTheme() }
 
+
     // ===============================================
     //               بخش مدیریت دایالوگ‌ها
     // ===============================================
 
     // --- دایالوگ حذف تکی ---
-        AppAlertDialog(
-            isVisible = showDeleteDialog && noteToDelete != null,
-            title = "حذف یادداشت",
-            message = "آیا مطمئنید که می‌خواهید یادداشت را حذف کنید؟",
-            confirmText = "حذف",
-            dismissText = "لغو",
-            onConfirm = { viewModel.confirmDeleteNote() },
-            onDismiss = { viewModel.hideDeleteNoteDialog() }
-        )
-
-
+    AppAlertDialog(
+        isVisible = showDeleteDialog && noteToDelete != null,
+        title = "حذف یادداشت",
+        message = "آیا مطمئنید که می‌خواهید یادداشت را حذف کنید؟",
+        confirmText = "حذف",
+        dismissText = "لغو",
+        onConfirm = { viewModel.confirmDeleteNote() },
+        onDismiss = { viewModel.hideDeleteNoteDialog() }
+    )
 
 
     AppAlertDialog(
@@ -106,18 +100,21 @@ fun NoteListScreen(
     //                  بخش Scaffold
     // ===============================================
     Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                MyCustomSnackbar(data)
-            }
-        },
+
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) { data -> MyCustomSnackbar(data) } },
         topBar = {
             CenterAlignedTopAppBar(
+
+                colors = TopAppBarDefaults.topAppBarColors(
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                ),
                 title = {
                     Text(
-                        "یادداشت‌های من",
-                        fontWeight = FontWeight.Bold
-                    )
+                        "یادداشت‌ها",
+                        fontWeight = FontWeight.Bold,
+
+                        )
+
                 },
                 actions = {
                     IconButton(onClick = toggleTheme) {
@@ -126,12 +123,12 @@ fun NoteListScreen(
                             contentDescription = "تغییر تم"
                         )
                     }
-
                     IconButton(onClick = { viewModel.showDeleteAllDialog() }) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "حذف همه")
                     }
-                }
-            )
+                },
+
+                )
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -151,18 +148,26 @@ fun NoteListScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+
                 .pointerInput(Unit) {
                     detectTapGestures {
                         focusManager.clearFocus()
                     }
                 }
                 .padding(paddingValues)
-        ) {
+        )
+        {
+
             // سرچ‌بار
             NotesSearchBar(
                 query = searchQuery,
-                onQueryChange = { viewModel.onSearchQueryChange(it) }
+                onQueryChange = { viewModel.onSearchQueryChange(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+
             )
+
 
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 if (notes.isEmpty()) {
@@ -171,14 +176,19 @@ fun NoteListScreen(
 
                     NotesList(
                         notes = notes,
-                        onNoteClick = onNoteClick,
+                        onNoteClick = {
+                            focusManager.clearFocus()
+                            onNoteClick(it)
+                        },
                         searchQuery = searchQuery,
-                        onDeleteClick = viewModel::showDeleteNoteDialog, // تابع حذف تکی
-                        onTogglePin = viewModel::togglePin, // تابع پین کردن
-                        modifier = Modifier.fillMaxSize()
+                        onDeleteClick = viewModel::showDeleteNoteDialog,
+                        onTogglePin = viewModel::togglePin,
+                        modifier = Modifier.fillMaxSize(),
                     )
+
                 }
             }
         }
+
     }
 }

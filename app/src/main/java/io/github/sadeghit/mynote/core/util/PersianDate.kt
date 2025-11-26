@@ -1,5 +1,6 @@
 package io.github.sadeghit.mynote.core.util
 
+import android.annotation.SuppressLint
 import java.util.Calendar
 import java.util.GregorianCalendar
 import javax.inject.Inject
@@ -29,8 +30,8 @@ class PersianDate @Inject constructor() {
 
         // تاریخ میلادی
         var gy = calendar.get(Calendar.YEAR)
-        var gm = calendar.get(Calendar.MONTH) + 1
-        var gd = calendar.get(Calendar.DAY_OF_MONTH)
+        val gm = calendar.get(Calendar.MONTH) + 1
+        val gd = calendar.get(Calendar.DAY_OF_MONTH)
         val gWeekDay = calendar.get(Calendar.DAY_OF_WEEK)
 
         // --- تبدیل میلادی به شمسی (الگوریتم استاندارد) ---
@@ -69,7 +70,8 @@ class PersianDate @Inject constructor() {
         year = jy
 
         // gDayNo: روز سپری شده در سال شمسی (1-اندیس: فروردین 1م = 1)
-        // تبدیل به 0-اندیس برای محاسبه دقیق روز ماه
+        // تبدیل به 0-اندیس برای
+        // محاسبه دقیق روز ماه
         val daysZeroIndex = gDayNo - 1
 
         // محاسبه ماه و روز شمسی
@@ -112,7 +114,13 @@ class PersianDate @Inject constructor() {
     }
 
     // تابع کمکی برای نمایش تاریخ کامل
+    @SuppressLint("DefaultLocale")
     fun getFullDate(): String {
-        return "$strWeekDay، $day $strMonth $year - ${String.format("%02d", hour)}:${String.format("%02d", minute)}"
+        return "$strWeekDay، $day $strMonth $year - ${
+            String.format(
+                "%02d",
+                hour
+            )
+        }:${String.format("%02d", minute)}"
     }
 }
