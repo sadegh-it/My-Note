@@ -22,9 +22,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.sadeghit.mynote.data.local.datastore.ThemeManager
 import io.github.sadeghit.mynote.ui.screen.notes.components.AppAlertDialog
 import io.github.sadeghit.mynote.ui.screen.notes.components.MessageHandler
 import io.github.sadeghit.mynote.ui.screen.notes.components.MyCustomSnackbar
@@ -46,17 +49,24 @@ import io.github.sadeghit.mynote.ui.screen.notes.components.NotesSearchBar
 import io.github.sadeghit.mynote.viewModel.NotesViewModel
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
+ @Composable
 fun NoteListScreen(
     onNoteClick: (Long) -> Unit,
     onAddClick: () -> Unit,
-    viewModel: NotesViewModel = hiltViewModel()
+    viewModel: NotesViewModel = hiltViewModel(),
+
 ) {
+    val themeManager: ThemeManager = hiltViewModel()
     val focusManager = LocalFocusManager.current
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
+
+    val isDarkTheme = themeManager.isDarkTheme
+
+
+    // FIX: تعریف تابع toggleTheme جدید
+    val toggleTheme = { themeManager.toggleTheme() }
+
 
     // پراپرتی‌های مربوط به مدیریت حذف
     val showDeleteDialog by viewModel.showDeleteDialog.collectAsStateWithLifecycle()
@@ -66,7 +76,7 @@ fun NoteListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     MessageHandler(eventFlow = viewModel.event, snackbarHostState = snackbarHostState)
     // برای تغییر تم
-    val toggleTheme = { viewModel.toggleTheme() }
+
 
 
     // ===============================================
@@ -100,35 +110,14 @@ fun NoteListScreen(
     //                  بخش Scaffold
     // ===============================================
     Scaffold(
-
+        modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) { data -> MyCustomSnackbar(data) } },
         topBar = {
-            CenterAlignedTopAppBar(
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                ),
-                title = {
-                    Text(
-                        "یادداشت‌ها",
-                        fontWeight = FontWeight.Bold,
-
-                        )
-
-                },
-                actions = {
-                    IconButton(onClick = toggleTheme) {
-                        Icon(
-                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "تغییر تم"
-                        )
-                    }
-                    IconButton(onClick = { viewModel.showDeleteAllDialog() }) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "حذف همه")
-                    }
-                },
-
-                )
+            NotesTopBar(
+                isDarkMode = isDarkTheme,
+                onToggleTheme = toggleTheme,
+                onDeleteAll = { viewModel.showDeleteAllDialog() }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(

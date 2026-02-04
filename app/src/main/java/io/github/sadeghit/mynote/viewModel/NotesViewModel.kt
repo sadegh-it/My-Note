@@ -32,12 +32,6 @@ class NotesViewModel @Inject constructor(
     private val appSettings: AppSettings
 ) : ViewModel() {
 
-    val isDarkMode: StateFlow<Boolean> = appSettings.isDarkMode
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
 
 
     private val _isNoteLoaded = MutableStateFlow(false)
@@ -120,11 +114,7 @@ class NotesViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    fun toggleTheme() {
-        viewModelScope.launch {
-            appSettings.setDarkMode(!isDarkMode.value)
-        }
-    }
+
 
 
     fun showDeleteNoteDialog(note: NoteUiModel) {
@@ -138,8 +128,22 @@ class NotesViewModel @Inject constructor(
     }
 
 
+
     fun showDeleteAllDialog() {
-        _showDeleteAllDialog.value = true
+        viewModelScope.launch {
+            val hasNotes = repository.getAllNotes().first().isNotEmpty()
+            if (hasNotes) {
+                _showDeleteAllDialog.value = true
+            } else {
+
+                _event.emit(
+                    UiEvent.ShowMessage(
+                        message = "هیچ یادداشتی برای حذف وجود ندارد",
+                        actionLabel = null
+                    )
+                )
+            }
+        }
     }
 
     fun hideDeleteAllDialog() {
